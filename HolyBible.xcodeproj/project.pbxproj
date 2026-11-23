@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 110;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXFileReference section */
@@ -118,7 +118,7 @@
 			);
 			mainGroup = 4A84A0F9441F7B7A1DA1088C;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 90;
+			preferredProjectObjectVersion = 54;
 			productRefGroup = F69D68CD6B970E185A3D983D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
