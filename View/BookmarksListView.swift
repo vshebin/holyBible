@@ -9,7 +9,7 @@ import SwiftUI
 
 struct BookmarksListView: View {
     @ObservedObject var store: BibleStore
-    @Binding var activeChapter: BibleChapter?
+    @Binding var activeSession: ReadingSession?
     @Environment(\.dismiss) private var dismiss
 
     var bookmarkedList: [BibleChapter] {
@@ -17,27 +17,27 @@ struct BookmarksListView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
                 if bookmarkedList.isEmpty {
                     Text("No bookmarked chapters yet. Tap the bookmark icon while reading to save a chapter.")
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 } else {
                     ForEach(bookmarkedList) { chapter in
                         Button {
                             store.currentChapterID = chapter.id
-                            activeChapter = chapter
+                            activeSession = ReadingSession(chapter: chapter, isRandomMode: false)
                             dismiss()
                         } label: {
                             HStack {
                                 Image(systemName: "bookmark.fill")
-                                    .foregroundStyle(.orange)
+                                    .foregroundColor(.orange)
                                 VStack(alignment: .leading) {
                                     Text("\(chapter.book) \(chapter.chapter)")
-                                        .foregroundStyle(.primary)
+                                        .foregroundColor(.primary)
                                     Text(chapter.testament.rawValue)
                                         .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundColor(.secondary)
                                 }
                             }
                         }
@@ -45,9 +45,14 @@ struct BookmarksListView: View {
                 }
             }
             .navigationTitle("Bookmarked Chapters")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                Button("Done") { dismiss() }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
             }
         }
+        .navigationViewStyle(.stack)
     }
 }
+

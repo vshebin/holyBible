@@ -37,4 +37,19 @@ final class BibleDatabase {
         self.newTestamentBooks = ntBooks
         self.chaptersByBook = grouped
     }
+    
+    func previousChapter(before chapter: BibleChapter) -> BibleChapter? {
+        guard let index = allChapters.firstIndex(where: { $0.id == chapter.id }), index > 0 else {
+            return nil
+        }
+        return allChapters[index - 1]
+    }
+
+    func nextChapter(after chapter: BibleChapter) -> BibleChapter? {
+        guard let index = allChapters.firstIndex(where: { $0.id == chapter.id }),
+              index + 1 < allChapters.count else {
+            return nil
+        }
+        return allChapters[index + 1]
+    }
 }

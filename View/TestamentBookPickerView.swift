@@ -8,20 +8,28 @@
 import SwiftUI
 
 struct TestamentBookPickerView: View {
+    let currentViewingChapter: BibleChapter
     @ObservedObject var store: BibleStore
-    @Binding var activeChapter: BibleChapter?
+    @Binding var activeSession: ReadingSession?
+
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTestament: Testament = .old
+    @State private var expandedBooks: Set<String> = []
+    @State private var searchText = ""
 
     var booksToShow: [String] {
-        selectedTestament == .old
+        let base = selectedTestament == .old
             ? BibleDatabase.shared.oldTestamentBooks
             : BibleDatabase.shared.newTestamentBooks
+        if searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            return base
+        }
+        return base.filter { $0.localizedCaseInsensitiveContains(searchText) }
     }
 
     var body: some View {
-        NavigationStack {
-            VStack {
+        NavigationView {
+            VStack(spacing: 12) {
                 Picker("Testament", selection: $selectedTestament) {
                     ForEach(Testament.allCases, id: \.self) { testament in
                         Text(testament.rawValue).tag(testament)
@@ -31,26 +39,39 @@ struct TestamentBookPickerView: View {
                 .padding(.horizontal)
 
                 List(booksToShow, id: \.self) { bookName in
-                    DisclosureGroup(bookName) {
+                    DisclosureGroup(
+                        isExpanded: Binding(
+                            get: { expandedBooks.contains(bookName) || !searchText.isEmpty },
+                            set: { isExpanding in
+                                if isExpanding {
+                                    expandedBooks.insert(bookName)
+                                } else {
+                                    expandedBooks.remove(bookName)
+                                }
+                            }
+                        )
+                    ) {
                         let chapters = BibleDatabase.shared.chaptersByBook[bookName] ?? []
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 50))], spacing: 10) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 48))], spacing: 10) {
                             ForEach(chapters) { chap in
+                                let isSelected = chap.id == currentViewingChapter.id
                                 Button {
                                     store.currentChapterID = chap.id
-                                    activeChapter = chap
+                                    activeSession = ReadingSession(chapter: chap, isRandomMode: false)
                                     dismiss()
                                 } label: {
                                     ZStack(alignment: .topTrailing) {
                                         Text("\(chap.chapter)")
                                             .font(.subheadline.bold())
                                             .frame(width: 44, height: 44)
-                                            .background(Color.secondary.opacity(0.15))
+                                            .background(isSelected ? Color.accentColor : Color.secondary.opacity(0.15))
+                                            .foregroundColor(isSelected ? .white : .primary)
                                             .clipShape(RoundedRectangle(cornerRadius: 8))
 
                                         if KidsIllustrationHelper.storyCaptions[chap.id] != nil {
                                             Image(systemName: "star.fill")
                                                 .font(.system(size: 9))
-                                                .foregroundStyle(.orange)
+                                                .foregroundColor(.orange)
                                                 .padding(3)
                                         }
                                     }
@@ -58,14 +79,36 @@ struct TestamentBookPickerView: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 8)
+                    } label: {
+                        HStack {
+                            Text(bookName)
+                                .font(.headline)
+                                .fontWeight(currentViewingChapter.book == bookName ? .bold : .regular)
+                            Spacer()
+                            let count = BibleDatabase.shared.chaptersByBook[bookName]?.count ?? 0
+                            Text("\(count) ch")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .contentShape(Rectangle())
                     }
                 }
+                .listStyle(.plain)
+                .searchable(text: $searchText, prompt: "Search book name...")
             }
-            .navigationTitle("Select Book")
+            .navigationTitle("Table of Contents")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                selectedTestament = currentViewingChapter.testament
+                expandedBooks.insert(currentViewingChapter.book)
+            }
             .toolbar {
-                Button("Done") { dismiss() }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
             }
         }
+        .navigationViewStyle(.stack)
     }
 }

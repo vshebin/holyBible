@@ -16,7 +16,7 @@ struct HighlightPickerSheet: View {
         VStack(spacing: 20) {
             Text("Highlight \(verse.book) \(verse.chapter):\(verse.number)")
                 .font(.headline)
-                .padding(.top)
+                .padding(.top, 24)
 
             HStack(spacing: 20) {
                 ForEach(HighlightColor.allCases, id: \.self) { color in
@@ -38,7 +38,7 @@ struct HighlightPickerSheet: View {
                 } label: {
                     Image(systemName: "xmark.circle")
                         .font(.system(size: 36))
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 }
             }
             Spacer()

@@ -9,18 +9,35 @@ import Foundation
 import Combine
 
 final class BibleStore: ObservableObject {
+    // 1. Main Reading Spot (Strictly for "Continue Reading")
     @Published var currentChapterID: String {
         didSet { UserDefaults.standard.set(currentChapterID, forKey: "currentChapterID") }
     }
+
+    // 2. Separate Random Chapter Spot (Stays the same until finished or refreshed)
+    @Published var dailyRandomChapterID: String {
+        didSet { UserDefaults.standard.set(dailyRandomChapterID, forKey: "dailyRandomChapterID") }
+    }
+
     @Published var bookmarkedChapters: Set<String> = [] {
         didSet { saveBookmarks() }
     }
+
     @Published var verseHighlights: [String: HighlightColor] = [:] {
         didSet { saveHighlights() }
     }
 
     init() {
         self.currentChapterID = UserDefaults.standard.string(forKey: "currentChapterID") ?? "Genesis_1"
+
+        if let savedRandom = UserDefaults.standard.string(forKey: "dailyRandomChapterID") {
+            self.dailyRandomChapterID = savedRandom
+        } else {
+            let initialRandom = BibleDatabase.shared.allChapters.randomElement()?.id ?? "Psalm_23"
+            self.dailyRandomChapterID = initialRandom
+            UserDefaults.standard.set(initialRandom, forKey: "dailyRandomChapterID")
+        }
+
         loadBookmarks()
         loadHighlights()
     }
@@ -30,10 +47,19 @@ final class BibleStore: ObservableObject {
         ?? BibleDatabase.shared.allChapters.first!
     }
 
-    func pickRandomChapter() -> BibleChapter {
-        let otherChapters = BibleDatabase.shared.allChapters.filter { $0.id != currentChapterID }
-        let chosen = otherChapters.randomElement() ?? BibleDatabase.shared.allChapters.first!
-        currentChapterID = chosen.id
+    var dailyRandomChapter: BibleChapter {
+        BibleDatabase.shared.allChapters.first(where: { $0.id == dailyRandomChapterID })
+        ?? BibleDatabase.shared.allChapters.first!
+    }
+
+    /// Generates a brand-new random chapter (called when user finishes the current random chapter or hits shuffle)
+    @discardableResult
+    func refreshRandomChapter() -> BibleChapter {
+        let candidates = BibleDatabase.shared.allChapters.filter {
+            !$0.verses.isEmpty && $0.id != dailyRandomChapterID
+        }
+        let chosen = candidates.randomElement() ?? BibleDatabase.shared.allChapters.first!
+        dailyRandomChapterID = chosen.id
         return chosen
     }
 
