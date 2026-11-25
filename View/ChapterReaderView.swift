@@ -50,6 +50,7 @@ struct ChapterReaderView: View {
                     
                     bottomNavigationSection(proxy: proxy)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
             }
         }
@@ -188,10 +189,17 @@ struct ChapterReaderView: View {
             let theme = KidsIllustrationHelper.bannerTheme(for: chapter)
             
             VStack(alignment: .leading, spacing: 0) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
+                // Pin the banner to the container width, then crop the
+                // fill-scaled image inside it. Without a fixed width, a wide
+                // image's ideal width pushes the whole page off-screen.
+                Color.clear
+                    .frame(maxWidth: .infinity)
                     .frame(height: 220)
+                    .overlay(
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                    )
                     .clipped()
                 
                 HStack {
