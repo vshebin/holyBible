@@ -54,8 +54,10 @@ struct ContentView: View {
     private var homeContent: some View {
         ZStack {
             // Home Screen Background Image
+            // Wide artwork for landscape / unfolded screens, portrait artwork otherwise
             GeometryReader { geo in
-                Image("BibleBackground")
+                let isWide = geo.size.width > geo.size.height
+                Image(isWide ? "BibleBackgroundWide" : "BibleBackground")
                     .resizable()
                     .scaledToFill()
                     .frame(width: geo.size.width, height: geo.size.height)

@@ -18,7 +18,6 @@ struct ChapterReaderView: View {
     @State private var showBookmarksList = false
     @State private var showTableOfContents = false
     @State private var showArtwork = true
-    @State private var generatedArtwork: UIImage?
     @State private var currentSlideIndex = 0
     
     var isBookmarked: Bool {
@@ -51,6 +50,7 @@ struct ChapterReaderView: View {
                     bottomNavigationSection(proxy: proxy)
                 }
                 .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .navigationTitle("")
@@ -59,9 +59,6 @@ struct ChapterReaderView: View {
             if !isRandomMode {
                 store.currentChapterID = chapter.id
             }
-        }
-        .task(id: chapter.id) {
-            await loadChapterIllustration()
         }
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -139,6 +136,8 @@ struct ChapterReaderView: View {
         
         if showArtwork && !storySlides.isEmpty {
             let theme = KidsIllustrationHelper.bannerTheme(for: chapter)
+            let firstSize = storySlides[0].size
+            let ratio: CGFloat = firstSize.height > 0 ? firstSize.width / firstSize.height : 1.5
             
             VStack(alignment: .leading, spacing: 0) {
                 ZStack(alignment: .topTrailing) {
@@ -147,13 +146,12 @@ struct ChapterReaderView: View {
                             Image(uiImage: storySlides[index])
                                 .resizable()
                                 .scaledToFit()
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 240)
-                                .background(Color.black.opacity(0.04))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .tag(index)
                         }
                     }
-                    .frame(height: 240)
+                    .aspectRatio(ratio, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
                     .tabViewStyle(.page(indexDisplayMode: .automatic))
                     
                     Text("\(currentSlideIndex + 1) / \(storySlides.count)")
@@ -184,15 +182,15 @@ struct ChapterReaderView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
             )
-        } else if showArtwork, let uiImage = generatedArtwork ?? KidsIllustrationHelper.localUIImage(for: chapter) {
+        } else if showArtwork, let uiImage = KidsIllustrationHelper.localUIImage(for: chapter) {
             let theme = KidsIllustrationHelper.bannerTheme(for: chapter)
             
             VStack(alignment: .leading, spacing: 0) {
+                // Full width, height follows the image shape: no crop, no bars, scales on iPad
                 Image(uiImage: uiImage)
                     .resizable()
-                    .scaledToFill()
-                    .frame(height: 220)
-                    .clipped()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
                 
                 HStack {
                     Image(systemName: "sparkles")
@@ -362,28 +360,6 @@ struct ChapterReaderView: View {
             showBookmarksList = true
         } label: {
             Image(systemName: "bookmark.circle")
-        }
-    }
-    
-    // MARK: - Background Illustration Loader
-    private func loadChapterIllustration() async {
-        generatedArtwork = nil
-        currentSlideIndex = 0
-        if KidsIllustrationHelper.storySequenceImages(for: chapter).isEmpty,
-           KidsIllustrationHelper.localUIImage(for: chapter) == nil {
-            let firstTwoVerses: [BibleVerse] = Array(chapter.verses.prefix(2))
-            let fallbackHint: String = firstTwoVerses.map { verse in verse.text }.joined(separator: " ")
-            let hint: String = KidsIllustrationHelper.storyCaptions[chapter.id] ?? fallbackHint
-            let fetched = await OpenAIImageService.shared.fetchOrGenerateIllustration(
-                chapterID: chapter.id,
-                book: chapter.book,
-                chapterNumber: chapter.chapter,
-                storyHint: hint
-            )
-            guard !Task.isCancelled else { return }
-            withAnimation(.easeIn(duration: 0.3)) {
-                generatedArtwork = fetched
-            }
         }
     }
 }
